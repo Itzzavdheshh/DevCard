@@ -1,11 +1,11 @@
 import fp from 'fastify-plugin';
 import { PrismaClient } from '@prisma/client';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
 declare module 'fastify' {
   interface FastifyInstance {
     prisma: PrismaClient;
-    authenticate: any;
+    authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
   }
 }
 
