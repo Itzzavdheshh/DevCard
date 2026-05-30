@@ -16,7 +16,8 @@ import { COLORS, SPACING, FONT_SIZE, BORDER_RADIUS, SHADOWS } from '../theme/tok
 import { Skeleton } from '../components/Skeleton';
 import { EmptyState } from '../components/EmptyState';
 import Avatar from '../components/Avatar';
-import { PLATFORMS, getProfileUrl, getWebViewUrl } from '@devcard/shared';
+import { PLATFORMS, getProfileUrl, getWebViewUrl, resolveDeepLink } from '@devcard/shared';
+import type { ResolvedLink } from '@devcard/shared';
 import { get, post, del } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -143,19 +144,20 @@ export default function DevCardViewScreen({ navigation, route }: Props) {
         break;
 
       case 'webview':
-          setFollowStates(prev => ({ ...prev, [link.id]: 'loading' }));
-          try {
-            const data = await post<any>(`/api/follow/${link.platform}/${link.username}`, undefined, token);
-            setFollowStates(prev => ({ ...prev, [link.id]: 'idle' }));
-            if (data?.strategy === 'webview') {
-              handleWebViewConnect(link, data.url);
-            } else {
-              setFollowStates(prev => ({ ...prev, [link.id]: 'success' }));
-            }
-          } catch {
-            setFollowStates(prev => ({ ...prev, [link.id]: 'idle' }));
-            handleWebViewConnect(link);
+        setFollowStates(prev => ({ ...prev, [link.id]: 'loading' }));
+        try {
+          const data = await post<any>(`/api/follow/${link.platform}/${link.username}`, undefined, token);
+          setFollowStates(prev => ({ ...prev, [link.id]: 'idle' }));
+          if (data?.strategy === 'webview') {
+            handleWebViewConnect(link, data.url);
+          } else {
+            setFollowStates(prev => ({ ...prev, [link.id]: 'success' }));
           }
+        } catch {
+          setFollowStates(prev => ({ ...prev, [link.id]: 'idle' }));
+          const resolved = resolveDeepLink(link.platform, link.username, { isMobile: true });
+          await executeResolvedLinkChain(resolved, link);
+        }
         break;
 
       case 'copy':
@@ -165,14 +167,47 @@ export default function DevCardViewScreen({ navigation, route }: Props) {
         break;
 
       case 'link':
-      default:
-        const url = link.url || getProfileUrl(link.platform, link.username);
-        if (url) {
-          Linking.openURL(url).catch(() =>
-            Alert.alert('Error', 'Could not open link')
-          );
-        }
+      default: {
+        const resolved = resolveDeepLink(link.platform, link.username, { isMobile: true });
+        await executeResolvedLinkChain(resolved, link);
         break;
+      }
+    }
+  };
+
+  const executeResolvedLinkChain = async (resolved: ResolvedLink, link: PlatformLink) => {
+    const tryOpenLink = async (node: ResolvedLink): Promise<boolean> => {
+      switch (node.strategy) {
+        case 'native-deeplink':
+        case 'universal-link':
+        case 'web-url':
+          if (node.url) {
+            try {
+              const supported = await Linking.canOpenURL(node.url);
+              if (supported) {
+                await Linking.openURL(node.url);
+                return true;
+              }
+            } catch (err) {
+              console.warn(`Failed to open URL ${node.url}:`, err);
+            }
+          }
+          break;
+
+        case 'webview':
+          handleWebViewConnect(link, node.url);
+          return true;
+      }
+
+      if (node.fallback) {
+        return await tryOpenLink(node.fallback);
+      }
+      return false;
+    };
+
+    const success = await tryOpenLink(resolved);
+    if (!success) {
+      Alert.alert('Error', 'Could not open connection link');
     }
   };
 
@@ -186,13 +221,8 @@ export default function DevCardViewScreen({ navigation, route }: Props) {
       const msg = (err && err.message) || '';
       if (msg.includes('requiresAuth')) {
         setFollowStates(prev => ({ ...prev, [link.id]: 'idle' }));
-        const webViewUrl = getWebViewUrl(link.platform, link.username);
-        if (webViewUrl) {
-          handleWebViewConnect(link);
-        } else {
-          const profileUrl = link.url || getProfileUrl(link.platform, link.username);
-          if (profileUrl) Linking.openURL(profileUrl).catch(() => Alert.alert('Error', `Could not open ${link.platform} profile`));
-        }
+        const resolved = resolveDeepLink(link.platform, link.username, { isMobile: true });
+        await executeResolvedLinkChain(resolved, link);
       } else {
         setFollowStates(prev => ({ ...prev, [link.id]: 'error' }));
       }
@@ -393,6 +423,14 @@ export default function DevCardViewScreen({ navigation, route }: Props) {
             const state = followStates[link.id] || 'idle';
             const btnColor = getButtonColor(link, state);
             const isDone = state === 'success';
+            const tileIconDynamic = {
+              backgroundColor: isDone
+                ? 'rgba(34,197,94,0.12)'
+                : (platform?.color || COLORS.primary) + '22',
+              borderColor: isDone
+                ? COLORS.success
+                : (platform?.color || COLORS.primary) + '66',
+            };
             const actionLabel = getButtonLabel(link);
             // Build a clear, human-readable label for screen readers
             const a11yLabel = isDone
