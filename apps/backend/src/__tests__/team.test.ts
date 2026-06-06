@@ -100,8 +100,10 @@ async function buildApp(): Promise<FastifyInstance> {
 
   app.decorate('prisma', prismaMock as unknown as PrismaClient);
 
-  app.decorateRequest('jwtVerify', function () {
-    return mockJwtVerify();
+  app.decorateRequest('jwtVerify', async function (this: any) {
+    const payload = await mockJwtVerify();
+    this.user = payload;
+    return payload;
   });
 
   await app.register(teamRoutes);

@@ -76,8 +76,10 @@ async function buildApp(): Promise<FastifyInstance> {
 
   // Decorate jwtVerify on the request prototype so request.jwtVerify() resolves
   // to whatever the current test wants.
-  app.decorateRequest('jwtVerify', function () {
-    return mockJwtVerify();
+  app.decorateRequest('jwtVerify', async function (this: any) {
+    const payload = await mockJwtVerify();
+    this.user = payload;
+    return payload;
   });
 
   // Register with the same prefix used in production (app.ts) so that
@@ -254,6 +256,10 @@ describe('Events API', () => {
       prismaMock.event.findUnique.mockResolvedValue({
         ...MOCK_EVENT,
         _count: { attendees: 42 },
+        organizer: {
+          username: 'johndoe',
+          displayName: 'John Doe',
+        },
       });
 
       const res = await app.inject({
@@ -266,8 +272,9 @@ describe('Events API', () => {
       expect(body.slug).toBe('devcard-conf-2025');
       expect(body.attendeesCount).toBe(42);
       expect(body.location).toBe('San Francisco, CA');
-      // organizerId is exposed (public info)
-      expect(body.organizerId).toBe(MOCK_USER_ID);
+      // organizer public fields are exposed
+      expect(body.organizerUsername).toBe('johndoe');
+      expect(body.organizerDisplayName).toBe('John Doe');
     });
 
     it('404 — returns 404 for unknown slug', async () => {
@@ -288,6 +295,10 @@ describe('Events API', () => {
       prismaMock.event.findUnique.mockResolvedValue({
         ...MOCK_EVENT,
         _count: { attendees: 0 },
+        organizer: {
+          username: 'johndoe',
+          displayName: 'John Doe',
+        },
       });
 
       const res = await app.inject({
@@ -497,6 +508,7 @@ describe('Events API', () => {
       prismaMock.event.findUnique.mockResolvedValue({
         ...MOCK_EVENT,
         attendees: attendeeRows,
+        _count: { attendees: 2 },
       });
 
       const res = await app.inject({
@@ -525,6 +537,7 @@ describe('Events API', () => {
       prismaMock.event.findUnique.mockResolvedValue({
         ...MOCK_EVENT,
         attendees: [makeAttendeeRow(MOCK_OTHER_USER_PROFILE)],
+        _count: { attendees: 1 },
       });
 
       const res = await app.inject({
@@ -547,6 +560,7 @@ describe('Events API', () => {
       prismaMock.event.findUnique.mockResolvedValue({
         ...MOCK_EVENT,
         attendees: [],
+        _count: { attendees: 0 },
       });
 
       const res = await app.inject({
@@ -563,6 +577,7 @@ describe('Events API', () => {
       prismaMock.event.findUnique.mockResolvedValue({
         ...MOCK_EVENT,
         attendees: [],
+        _count: { attendees: 0 },
       });
 
       const res = await app.inject({
@@ -579,6 +594,7 @@ describe('Events API', () => {
       prismaMock.event.findUnique.mockResolvedValue({
         ...MOCK_EVENT,
         attendees: [],
+        _count: { attendees: 0 },
       });
 
       const res = await app.inject({
@@ -596,6 +612,7 @@ describe('Events API', () => {
       prismaMock.event.findUnique.mockResolvedValue({
         ...MOCK_EVENT,
         attendees: [makeAttendeeRow(MOCK_USER_PROFILE)],
+        _count: { attendees: 1 },
       });
 
       const res = await app.inject({
@@ -634,6 +651,7 @@ describe('Events API', () => {
       prismaMock.event.findUnique.mockResolvedValue({
         ...MOCK_EVENT,
         attendees: [],
+        _count: { attendees: 0 },
       });
 
       await app.inject({
