@@ -1,8 +1,10 @@
-import type { FastifyContextConfig, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { generateQRBuffer, generateQRSvg } from '../utils/qr.js';
-import type { PlatformLink } from '@devcard/shared';
-import { getErrorMessage } from '../utils/error.util.js';
 import * as publicService from '../services/publicService'
+import { getErrorMessage } from '../utils/error.util.js';
+import { generateQRBuffer, generateQRSvg } from '../utils/qr.js';
+
+import type { PlatformLink } from '@devcard/shared';
+import type { FastifyContextConfig, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+
 
 
 // ── QR size bounds ────────────────────────────────────────────────────────────
@@ -122,7 +124,7 @@ export async function publicRoutes(app: FastifyInstance) {
 
     try {
       const result = await publicService.getPublicProfile(app, username, viewerId, request)
-      if (!result) return reply.status(404).send({ error: 'User not found' })
+      if (!result) {return reply.status(404).send({ error: 'User not found' })}
       reply.header('X-Cache', result.cached ? 'HIT' : 'MISS').header('Cache-Control', CACHE_CONTROL_HEADER)
       return result.data
     } catch (err: any) {
@@ -150,7 +152,7 @@ export async function publicRoutes(app: FastifyInstance) {
 
     try {
       const card = await publicService.getCardById(app, cardId)
-      if (!card) return reply.status(404).send({ error: 'Card not found' })
+      if (!card) {return reply.status(404).send({ error: 'Card not found' })}
       const response = { id: card.id, title: card.title, owner: { username: card.user.username, displayName: card.user.displayName, bio: card.user.bio, avatarUrl: card.user.avatarUrl, accentColor: card.user.accentColor }, links: card.cardLinks.map((cl: any) => ({ id: cl.platformLink.id, platform: cl.platformLink.platform, username: cl.platformLink.username, url: cl.platformLink.url })) }
       return response
     } catch (err: any) {
@@ -188,7 +190,7 @@ export async function publicRoutes(app: FastifyInstance) {
 
     try {
       const result = await publicService.getUserCard(app, username, cardId, viewerId, request)
-      if (result.notFound) return reply.status(404).send({ error: 'User or card not found' })
+      if (result.notFound) {return reply.status(404).send({ error: 'User or card not found' })}
       return result.data
     } catch (err: any) {
       app.log.error({ err }, 'Failed to fetch user card')
@@ -213,7 +215,7 @@ export async function publicRoutes(app: FastifyInstance) {
 
     try {
       const result = await publicService.getPublicProfile(app, username, null, request)
-      if (!result) return reply.status(404).send({ error: 'User not found' })
+      if (!result) {return reply.status(404).send({ error: 'User not found' })}
       const snapshot = result.data
       const expiresIn = 600
       const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString()

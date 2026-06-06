@@ -21,8 +21,8 @@ import { followRoutes } from './routes/follow.js';
 import { nfcRoutes } from './routes/nfc.js';
 import { profileRoutes } from './routes/profiles.js';
 import { publicRoutes } from './routes/public.js';
-import { validateEnv } from './utils/validateEnv.js';
 import { teamRoutes } from './routes/team.js';
+import { validateEnv } from './utils/validateEnv.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -92,7 +92,7 @@ export async function buildApp():Promise<FastifyInstance> {
     try {
       // Ensure the verified payload is assigned to `request.user` like the original plugin.
       const payload = await request.jwtVerify();
-      if (payload) request.user = payload;
+      if (payload) {request.user = payload;}
     } catch (error) {
       reply.status(401).send({ error: 'Unauthorized' });
     }
