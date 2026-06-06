@@ -1,7 +1,5 @@
-import { getProfileUrl } from '@devcard/shared';
 
 import * as profileService from '../services/profileService'
-import { getErrorMessage } from '../utils/error.util.js';
 import { updateProfileSchema, createLinkSchema, reorderLinksSchema } from '../utils/validators.js';
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
@@ -10,20 +8,8 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 // Declared explicitly so the API contract is visible without tracing through
 // Prisma's generic return types.  Follows the convention in public.ts.
 
-type ProfileUpdateResponse = {
-  id: string;
-  email: string;
-  username: string;
-  displayName: string;
-  bio: string | null;
-  pronouns: string | null;
-  role: string | null;
-  company: string | null;
-  avatarUrl: string | null;
-  accentColor: string;
-};
 
-export async function profileRoutes(app: FastifyInstance) {
+export async function profileRoutes(app: FastifyInstance): Promise<void> {
   // All profile routes require auth
   app.addHook('preHandler', async (request, reply) => {
     const server = request.server as any;
@@ -37,7 +23,7 @@ export async function profileRoutes(app: FastifyInstance) {
     }
     try {
       await request.jwtVerify();
-    } catch (e) {
+    } catch {
       reply.status(401).send({ error: 'Unauthorized' });
     }
   });

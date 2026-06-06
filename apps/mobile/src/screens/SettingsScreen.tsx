@@ -15,8 +15,22 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS, SPACING, FONT_SIZE, BORDER_RADIUS } from '../theme/tokens';
 import { useAuth } from '../context/AuthContext';
-import { API_BASE_URL } from '../config';
-import { put } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
+
+const SETTINGS_KEY = 'devcard.settings';
+const ACCENT_COLORS = ['#2C2C2C', '#EF4444', '#65A30D', '#3B82F6'];
+
+type LocalSettings = {
+  discoverableViaBle: boolean;
+  inAppConnect: boolean;
+  accentColor: string;
+};
+
+const DEFAULT_SETTINGS: LocalSettings = {
+  discoverableViaBle: true,
+  inAppConnect: true,
+  accentColor: '#65A30D',
+};
 
 export default function SettingsScreen() {
   const navigation = useNavigation<any>();
@@ -70,44 +84,59 @@ export default function SettingsScreen() {
           <SettingRow label="Connected Platforms" onPress={() => navigation.navigate('ConnectPlatforms')} />
         </Section>
 
-        <TouchableOpacity
-          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-          onPress={handleSave}
-          disabled={saving}
-          accessibilityLabel={saving ? 'Saving profile changes' : 'Save profile changes'}
-          accessibilityRole="button"
-          accessibilityState={{ disabled: saving, busy: saving }}
-        >
-          <Text style={styles.saveButtonText}>
-            {saving ? 'Saving...' : 'Save Changes'}
-          </Text>
-        </TouchableOpacity>
+        <Section title="PRIVACY">
+          <SettingRow
+            label="OAuth Tokens"
+            detail="View / Revoke"
+            onPress={() => Alert.alert('OAuth Tokens', 'Token management will be available here.')}
+          />
+          <SettingRow
+            label="Discoverable via BLE"
+            subtitle="Who can detect your DevCard nearby"
+            right={<Switch value={settings.discoverableViaBle} onValueChange={value => updateSettings({ discoverableViaBle: value })} />}
+          />
+          <SettingRow
+            label="In-app Connect"
+            subtitle="Enable WebView platform connections"
+            right={<Switch value={settings.inAppConnect} onValueChange={value => updateSettings({ inAppConnect: value })} />}
+          />
+        </Section>
 
-        {/* Integration Settings */}
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionSubtitle}>Integrations</Text>
-          <TouchableOpacity
-            style={styles.settingRow}
-            onPress={() => (navigation as any).navigate('ConnectPlatforms')}
-            accessibilityLabel="Connected Platforms"
-            accessibilityRole="button"
-            accessibilityHint="Opens the screen to manage your connected developer platforms"
-          >
-            <View style={styles.settingRowLeft}>
-              <Text style={styles.settingRowIcon}>🔌</Text>
-              <Text style={styles.settingRowText}>Connected Platforms</Text>
-            </View>
-            <Text style={styles.settingRowArrow}>→</Text>
+        <Section title="APPEARANCE">
+          <SettingRow
+            label="Theme"
+            detail={mode === 'dark' ? 'Dark' : 'Light'}
+            right={<Switch value={!isDark} onValueChange={toggleTheme} />}
+          />
+          <SettingRow
+            label="Accent Color"
+            right={
+              <View style={styles.swatches}>
+                {ACCENT_COLORS.map(color => (
+                  <TouchableOpacity
+                    accessibilityLabel={`Use ${color} accent color`}
+                    key={color}
+                    onPress={() => updateSettings({ accentColor: color })}
+                    style={[
+                      styles.swatch,
+                      { backgroundColor: color },
+                      settings.accentColor === color && styles.swatchActive,
+                    ]}
+                  />
+                ))}
+              </View>
+            }
+          />
+        </Section>
+
+        <Section title="DANGER ZONE">
+          <TouchableOpacity style={styles.deleteButton} onPress={deleteAllData}>
+            <Text style={styles.deleteText}>Delete All My Data</Text>
           </TouchableOpacity>
         </Section>
 
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-          accessibilityLabel="Log out of DevCard"
-          accessibilityRole="button"
-        >
-          <Text style={styles.logoutButtonText}>Log Out</Text>
+        <TouchableOpacity style={styles.signOutButton} onPress={logout}>
+          <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
 
         <View style={styles.footer}>
@@ -142,21 +171,20 @@ function SettingRow({
   right?: React.ReactNode;
   onPress?: () => void;
 }) {
-  return (
-    <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        style={[styles.fieldInput, multiline && styles.fieldInputMultiline]}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={COLORS.textMuted}
-        multiline={multiline}
-        numberOfLines={multiline ? 3 : 1}
-        accessibilityLabel={label}
-        accessibilityHint={placeholder ? `Example: ${placeholder}` : undefined}
-      />
-    </View>
+  const content = (
+    <>
+      <View style={styles.rowText}>
+        <Text style={styles.rowLabel}>{label}<Text style={styles.rowDetail}>{detail ? ` ${detail}` : ''}</Text></Text>
+        {!!subtitle && <Text style={styles.rowSubtitle}>{subtitle}</Text>}
+      </View>
+      {right || (onPress && <Icon name="chevron-right" size={20} color={COLORS.textMuted} />)}
+    </>
+  );
+
+  return onPress ? (
+    <TouchableOpacity style={styles.row} onPress={onPress}>{content}</TouchableOpacity>
+  ) : (
+    <View style={styles.row}>{content}</View>
   );
 }
 

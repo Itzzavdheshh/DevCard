@@ -258,7 +258,7 @@ export async function authRoutes(app: FastifyInstance) {
       const server = request.server as any;
       if (typeof server?.authenticate === 'function') { await server.authenticate(request, reply); return }
       if (typeof (app as any).authenticate === 'function') { await (app as any).authenticate(request, reply); return }
-      try { await request.jwtVerify() } catch (e) { reply.status(401).send({ error: 'Unauthorized' }) }
+      try { await request.jwtVerify() } catch { reply.status(401).send({ error: 'Unauthorized' }) }
     }] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const userId = (request.user as any).id;
     const user = await app.prisma.user.findUnique({

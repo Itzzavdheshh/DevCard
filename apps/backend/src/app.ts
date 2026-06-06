@@ -7,7 +7,6 @@ import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
 import rateLimit from '@fastify/rate-limit';
-import fastifyStatic from '@fastify/static';
 import Fastify, {type FastifyInstance} from 'fastify';
 
 import { prismaPlugin } from './plugins/prisma.js';
@@ -93,7 +92,7 @@ export async function buildApp():Promise<FastifyInstance> {
       // Ensure the verified payload is assigned to `request.user` like the original plugin.
       const payload = await request.jwtVerify();
       if (payload) {request.user = payload;}
-    } catch (error) {
+    } catch {
       reply.status(401).send({ error: 'Unauthorized' });
     }
   });

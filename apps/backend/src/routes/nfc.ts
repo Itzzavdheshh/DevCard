@@ -11,7 +11,7 @@ const nfcQuerySchema = z.object({
   card: z.string().uuid('Invalid card ID format').optional(),
 });
 
-export async function nfcRoutes(app: FastifyInstance) {
+export async function nfcRoutes(app: FastifyInstance): Promise<void> {
   app.addHook('preHandler', async (request, reply) => {
         const server = request.server as any;
         if (typeof server?.authenticate === 'function') {
@@ -24,7 +24,7 @@ export async function nfcRoutes(app: FastifyInstance) {
         }
         try {
           await request.jwtVerify();
-        } catch (e) {
+        } catch {
           reply.status(401).send({ error: 'Unauthorized' });
         }
   });

@@ -3,7 +3,6 @@ import { getErrorMessage } from '../utils/error.util.js'
 import type { FastifyInstance } from 'fastify'
 
 const PROFILE_CACHE_TTL = 300
-const CACHE_CONTROL_HEADER = 'public, max-age=300, stale-while-revalidate=60'
 
 export async function getPublicProfile(app: FastifyInstance, username: string, viewerId: string | null, request: any) {
   const cacheKey = `profile:${username}`

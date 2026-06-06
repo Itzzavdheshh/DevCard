@@ -18,7 +18,7 @@ export const redisPlugin = fp(async (app: FastifyInstance) => {
   try {
     await redis.connect();
     app.log.info('🔴 Redis connected');
-  } catch (error) {
+  } catch {
     app.log.warn('⚠️  Redis connection failed — running without cache');
   }
 

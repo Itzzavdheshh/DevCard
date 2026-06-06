@@ -1,8 +1,6 @@
 import * as publicService from '../services/publicService'
-import { getErrorMessage } from '../utils/error.util.js';
 import { generateQRBuffer, generateQRSvg } from '../utils/qr.js';
 
-import type { PlatformLink } from '@devcard/shared';
 import type { FastifyContextConfig, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 
 
@@ -18,80 +16,23 @@ const MAX_QR_SIZE = 2048;
 // Public profile cache TTL matches the Cache-Control max-age (5 minutes).
 // The QR session JWT TTL is 10 minutes so an offline scan remains valid well
 // beyond the HTTP cache window.
-const PROFILE_CACHE_TTL = 300; // seconds (5 minutes)
 const CACHE_CONTROL_HEADER = 'public, max-age=300, stale-while-revalidate=60';
 
-type PublicProfileLink = {
-  id: string;
-  platform: string;
-  username: string;
-  url: string;
-  displayOrder: number;
-  followed?: boolean;
-}
 
-type UsernamePublicProfileResponse = {
-  username: string;
-  displayName: string;
-  bio: string | null;
-  pronouns: string | null;
-  role: string | null;
-  company: string | null;
-  avatarUrl: string | null;
-  accentColor: string;
-  links: PublicProfileLink[]
-}
 
-type PublicProfileCardLink = {
-  id: string;
-  platform: string;
-  username: string;
-  url: string;
-  followed?: boolean;
-}
 
-type CardPublicProfileResponse = {
-  id: string;
-  title: string;
-  owner: {
-    username: string;
-    displayName: string;
-    bio: string | null;
-    avatarUrl: string | null;
-    accentColor: string;
-  };
-  links: PublicProfileCardLink[]
-}
 
-type UsernameCardPublicProfileResponse = {
-  title: string;
-  owner: {
-    username: string;
-    displayName: string;
-    bio: string | null;
-    pronouns: string | null;
-    role: string | null;
-    company: string | null;
-    avatarUrl: string | null;
-    accentColor: string;
-  };
-  links: PublicProfileCardLink[]
-}
+
+
 
 // Represents a CardLink record with the joined PlatformLink relation
-interface CardLinkWithPlatform {
-  id: string;
-  displayOrder: number;
-  platformLink: PlatformLink;
-}
 
 // ── Internal Redis cache shape ────────────────────────────────────────────────
 // Extends the public response with the owner's DB id so that background view
 // tracking can still fire on cache-HIT requests without an extra DB read.
-type CachedProfileEntry = UsernamePublicProfileResponse & { _userId: string };
 
 
-export async function publicRoutes(app: FastifyInstance) {
+export async function publicRoutes(app: FastifyInstance): Promise<void> {
   // ─── Public Profile ───────────────────────────────────────────────────────
   // ─── Public Profile ───
  /**
@@ -107,7 +48,6 @@ export async function publicRoutes(app: FastifyInstance) {
     },
   }, async (request: FastifyRequest<{ Params: { username: string } }>, reply: FastifyReply) => {
     const { username } = request.params;
-    const cacheKey = `profile:${username}`;
 
     // Try to extract viewer from Authorization header (soft auth).
     let viewerId: string | null = null
@@ -211,7 +151,6 @@ export async function publicRoutes(app: FastifyInstance) {
     } as FastifyContextConfig
   }, async (request: FastifyRequest<{ Params: { username: string } }>, reply: FastifyReply) => {
     const { username } = request.params;
-    const cacheKey = `profile:${username}`;
 
     try {
       const result = await publicService.getPublicProfile(app, username, null, request)

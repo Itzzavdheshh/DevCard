@@ -2,7 +2,6 @@ import { getProfileUrl } from '@devcard/shared'
 
 import { getErrorMessage } from '../utils/error.util.js'
 
-import type { PlatformLink } from '@devcard/shared'
 import type { FastifyInstance } from 'fastify'
 
 export async function getOwnProfile(app: FastifyInstance, userId: string) {
@@ -16,7 +15,7 @@ export async function getOwnProfile(app: FastifyInstance, userId: string) {
 
   if (!user) {return null}
 
-  const { provider, providerId, ...profileData } = user as any
+  const { provider: _provider, providerId: _providerId, ...profileData } = user as any
   return { ...profileData, defaultCardId: user.cards[0]?.id || null }
 }
 
